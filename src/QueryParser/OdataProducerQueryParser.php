@@ -196,6 +196,11 @@ class OdataProducerQueryParser implements QueryParserInterface
      */
     public function parseFilter($rawFilter)
     {
+    	$rawFilter = trim($rawFilter);
+		if ($rawFilter === '') {
+			return [];
+		}
+
         $parser = new ExpressionParserSimple($rawFilter);
 
         try {            

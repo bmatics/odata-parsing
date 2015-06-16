@@ -4,7 +4,7 @@ namespace Bmatics\Odata\QueryParser;
 interface QueryParserInterface
 {
 	/**
-	 * Parse the query
+	 * Parse the Odata query
 	 *
 	 * @return stdClass  properties: filter,orderby,top,skip,select,expand
 	 */

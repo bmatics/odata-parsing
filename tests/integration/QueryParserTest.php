@@ -63,4 +63,35 @@ class QueryParserTest extends \Codeception\TestCase\Test
         $this->assertSame($expected, $result);
     }
 
+    public function testParsingEmptyLaravelRequestQuery()
+    {
+        $request = Mockery::mock('Illuminate\Http\Request');
+        $request->shouldReceive('query')->once()->with('$filter', '')->andReturn('');
+        $request->shouldReceive('query')->once()->with('$orderby', '')->andReturn('');
+        $request->shouldReceive('query')->once()->with('$select', '')->andReturn('');
+        $request->shouldReceive('query')->once()->with('$expand', '')->andReturn('');
+        $request->shouldReceive('query')->once()->with('$skip', '')->andReturn('');
+        $request->shouldReceive('query')->once()->with('$top', '')->andReturn('');
+
+        $query = new Bmatics\Odata\Query\LaravelRequestWrapper($request);
+
+        $parser = new Bmatics\Odata\QueryParser\OdataProducerQueryParser($query);
+
+        $result = (array)$parser->parse();
+
+        ksort($result);
+
+        $expected = [
+            'expand' => [],
+            'filter' => [],
+            'orderby' => [],
+            'select' => [],
+            'skip' => null,
+            'top' => null,
+        ];
+
+        $this->assertSame($expected, $result);
+    }
+
+
 }
