@@ -1,7 +1,7 @@
 <?php
-namespace Bmatics\Odata\Query;
+namespace Bmatics\Odata\QueryParams;
 
-interface QueryInterface
+interface OdataQueryParamsInterface
 {
 	/**
 	 * Retrieve the $orderby parameter form the query

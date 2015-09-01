@@ -1,12 +1,14 @@
 <?php
 namespace Bmatics\Odata\QueryParser;
 
-interface QueryParserInterface
+use Bmatics\Odata\Query\QueryParamsInterface;
+
+interface OdataQueryParserInterface
 {
 	/**
 	 * Parse the Odata query
 	 *
 	 * @return stdClass  properties: filter,orderby,top,skip,select,expand
 	 */
-	public function parse();
+	public function parseQueryParams(QueryParamsInterface $query);
 }

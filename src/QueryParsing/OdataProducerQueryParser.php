@@ -10,32 +10,21 @@ use ODataProducer\UriProcessor\QueryProcessor\ExpressionParser\Expressions\Simpl
 use ODataProducer\UriProcessor\QueryProcessor\ExpressionParser\Expressions\ConstantExpression;
 use ODataProducer\UriProcessor\QueryProcessor\ExpressionParser\Expressions\AbstractExpression;
 use ODataProducer\Common\ODataException;
-use Bmatics\Odata\Query\QueryInterface;
+use Bmatics\Odata\Query\QueryParamsInterface;
+use Bmatics\Odata\Exceptions\QueryParsingException;
 
 
 class OdataProducerQueryParser implements QueryParserInterface
 {
-	protected $query;
-
-	/**
-	 * Construct a new parser for an Odata query
-	 *
-	 * @param QueryInterface $query
-	 */
-	public function __construct(QueryInterface $query)
-	{
-		$this->query = $query;
-	}
-
 	/**
 	 * Parse the Odata query
 	 *
 	 * @return stdClass  properties: filter,orderby,top,skip,select,expand
 	 */
-	public function parse()
+	public function parseQueryParams(QueryParamsInterface $queryParams)
 	{
 		foreach(['filter', 'orderby', 'top', 'skip', 'select', 'expand'] as $queryPart) {
-			$raw = $this->query->{'get'.$queryPart}();
+			$raw = $this->queryParams->{'get'.$queryPart}();
 			$parsed[$queryPart] = $this->{'parse'.$queryPart}($raw);
 		}
 		return (object)$parsed;
@@ -51,7 +40,7 @@ class OdataProducerQueryParser implements QueryParserInterface
 	 * @param string $rawOrderBy
 	 * @return array
    	 */
-    public function parseOrderBy($rawOrderBy)
+    protected function parseOrderBy($rawOrderBy)
     {
 		$orderings = explode(',', $rawOrderBy);
 
@@ -62,8 +51,8 @@ class OdataProducerQueryParser implements QueryParserInterface
 			if (strlen($ordering) == 0) {
 				continue;
 			}
-			if (!preg_match('@^([A-z0-9]+(?:/[A-z0-9]+)*)(?:\s+(asc|desc))?$@i', $ordering, $matches)) {
-				throw new QueryParserException('Syntax error in orderby');
+			if (!preg_match('@^([a-z0-9]+(?:/[a-z0-9]+)*)(?:\s+(asc|desc))?$@i', $ordering, $matches)) {
+				throw new QueryParsingException('Unable to parse orderby setting');
 			}
 
 			$property = str_replace('/', '.', $matches[1]);
@@ -81,7 +70,7 @@ class OdataProducerQueryParser implements QueryParserInterface
 	 * @param string $rawSkip
 	 * @return int|null
 	 */
-	public function parseSkip($rawSkip)
+	protected function parseSkip($rawSkip)
 	{
 		$rawSkip = trim($rawSkip);
 		if ($rawSkip === '') {
@@ -91,7 +80,7 @@ class OdataProducerQueryParser implements QueryParserInterface
 		$skip = filter_var($rawSkip, FILTER_VALIDATE_INT, ['min_range'=>0]);
 
 		if ($skip === false) {
-			throw new QueryParserException('Syntax error in skip');
+			throw new QueryParsingException('Unable to parse skip setting');
 		}
 
 		return $skip;
@@ -103,7 +92,7 @@ class OdataProducerQueryParser implements QueryParserInterface
 	 * @param string $rawTop
 	 * @return int|null
 	 */
-	public function parseTop($rawTop)
+	protected function parseTop($rawTop)
 	{
 		$rawTop = trim($rawTop);
 		if ($rawTop === '') {
@@ -113,7 +102,7 @@ class OdataProducerQueryParser implements QueryParserInterface
 		$top = filter_var($rawTop, FILTER_VALIDATE_INT, ['min_range'=>1]);
 
 		if ($top === false) {
-			throw new QueryParserException('Syntax error in top');
+			throw new QueryParsingException('Unable to parse top setting');
 		}
 
 		return $top;
@@ -129,7 +118,7 @@ class OdataProducerQueryParser implements QueryParserInterface
 	 * @param string $rawExpand
 	 * @return array
    	 */
-	public function parseExpand($rawExpand)
+	protected function parseExpand($rawExpand)
 	{
 		$expands = explode(',', $rawExpand);
 
@@ -142,7 +131,7 @@ class OdataProducerQueryParser implements QueryParserInterface
 			}
 
 			if (!preg_match('@^[A-z0-9]+(?:/[A-z0-9]+)*$@', $expand, $matches)) {
-				throw new QueryParserException('Syntax error in expand');
+				throw new QueryParsingException('Unable to parse expand setting');
 			}
 
 			$parsedExpands[] = str_replace('/', '.', $matches[0]);
@@ -161,7 +150,7 @@ class OdataProducerQueryParser implements QueryParserInterface
 	 * @param string $rawSelect
 	 * @return array
    	 */
-	public function parseSelect($rawSelect)
+	protected function parseSelect($rawSelect)
 	{
 		$selects = explode(',', $rawSelect);
 
@@ -174,7 +163,7 @@ class OdataProducerQueryParser implements QueryParserInterface
 			}
 
 			if (!preg_match('@^(?:(?:[A-z0-9]+(?:/[A-z0-9]+)*)|\*)$@', $select, $matches)) {
-				throw new QueryParserException('Syntax error in select');
+				throw new QueryParsingException('Unable to parse select setting');
 			}
 
 			$parsedSelects[] = str_replace('/', '.', $matches[0]);
@@ -194,22 +183,26 @@ class OdataProducerQueryParser implements QueryParserInterface
      * @param string $rawFilter
      * @return array
      */
-    public function parseFilter($rawFilter)
+    protected function parseFilter($rawFilter)
     {
     	$rawFilter = trim($rawFilter);
 		if ($rawFilter === '') {
 			return [];
 		}
 
-        $parser = new ExpressionParserSimple($rawFilter);
-
-        try {            
+        try {
+       		$parser = new ExpressionParserSimple($rawFilter);      
             $expression = $parser->parseFilter();
         } catch (ODataException $e) {
-            throw new QueryParserException('Syntax error in filter');
+            throw new QueryParsingException('Unable to parse filter setting: '.$e->getMessage());
         }        
 
-        return $this->expressionToArray($expression);
+        try {
+			return $this->expressionToArray($expression);
+        } catch (QueryParsingException $e) {
+        	throw new QueryParsingException('Unable to parse filter setting: '.$e->getMessage());
+        }
+        
     }
 
 
@@ -231,7 +224,7 @@ class OdataProducerQueryParser implements QueryParserInterface
             return $this->unaryExpressionToArray($expression);
 
         } else {
-            throw new QueryParserException('Unsupported Expression Type');
+            throw new QueryParsingException('Unsupported expression type in filter');
         }
     }
 
@@ -308,7 +301,7 @@ class OdataProducerQueryParser implements QueryParserInterface
             case ExpressionType::SUBTRACT:
                 return 'sub';
             default:
-                throw new QueryParserException('Unsupported Binary Expression Type');
+                throw new QueryParsingException('Unsupported binary expression type');
         }
     }
 
@@ -328,7 +321,7 @@ class OdataProducerQueryParser implements QueryParserInterface
             case ExpressionType::NEGATE:
                 return 'neg';
             default:
-                throw new QueryParserException('Unsupported Unary Expression Type');
+                throw new QueryParsingException('Unsupported unary expression type');
         }
     }
 

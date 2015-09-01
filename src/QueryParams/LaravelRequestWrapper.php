@@ -1,5 +1,5 @@
 <?php
-namespace Bmatics\Odata\Query;
+namespace Bmatics\Odata\QueryParams;
 
 use Illuminate\Http\Request;
 
