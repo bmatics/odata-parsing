@@ -24,7 +24,7 @@ class OdataProducerQueryParser implements OdataQueryParserInterface
 	public function parseQueryParams(OdataQueryParamsInterface $queryParams)
 	{
 		foreach(['filter', 'orderby', 'top', 'skip', 'select', 'expand'] as $queryPart) {
-			$raw = $this->queryParams->{'get'.$queryPart}();
+			$raw = $queryParams->{'get'.$queryPart}();
 			$parsed[$queryPart] = $this->{'parse'.$queryPart}($raw);
 		}
 		return (object)$parsed;
