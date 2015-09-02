@@ -1,5 +1,5 @@
 <?php
-namespace Bmatics\Odata\QueryParser;
+namespace Bmatics\Odata\QueryParsing;
 
 use ODataProducer\UriProcessor\QueryProcessor\ExpressionParser\ExpressionParserSimple;
 use ODataProducer\UriProcessor\QueryProcessor\ExpressionParser\Expressions\ExpressionType;
@@ -10,18 +10,18 @@ use ODataProducer\UriProcessor\QueryProcessor\ExpressionParser\Expressions\Simpl
 use ODataProducer\UriProcessor\QueryProcessor\ExpressionParser\Expressions\ConstantExpression;
 use ODataProducer\UriProcessor\QueryProcessor\ExpressionParser\Expressions\AbstractExpression;
 use ODataProducer\Common\ODataException;
-use Bmatics\Odata\Query\QueryParamsInterface;
+use Bmatics\Odata\QueryParams\OdataQueryParamsInterface;
 use Bmatics\Odata\Exceptions\QueryParsingException;
 
 
-class OdataProducerQueryParser implements QueryParserInterface
+class OdataProducerQueryParser implements OdataQueryParserInterface
 {
 	/**
 	 * Parse the Odata query
 	 *
 	 * @return stdClass  properties: filter,orderby,top,skip,select,expand
 	 */
-	public function parseQueryParams(QueryParamsInterface $queryParams)
+	public function parseQueryParams(OdataQueryParamsInterface $queryParams)
 	{
 		foreach(['filter', 'orderby', 'top', 'skip', 'select', 'expand'] as $queryPart) {
 			$raw = $this->queryParams->{'get'.$queryPart}();
